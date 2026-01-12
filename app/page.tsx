@@ -1,65 +1,123 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState } from "react";
+
+interface Note{
+  _id:string,
+  title:string,
+  discription:string
+}
 
 export default function Home() {
+  const [allNotes,setAllNotes] = useState<Note[]>([])
+  const [title,setTitle] = useState("")
+  const [discription,setDiscription] = useState("")
+  const [updateClickStatus,setUpdateClickStatus] = useState(false)
+  const [updateNoteId,setUpdateNoteId] = useState(" ")
+
+  console.log(allNotes);
+
+  useEffect(()=>{
+    fetchNotes()
+  },[])
+  
+  const fetchNotes = async()=>{
+    const res = await fetch('/api/notes')
+    setAllNotes(await res.json())
+  }
+
+  const addNote = async ()=>{
+    if(!title || !discription){
+      alert("Fill the form Completely")
+    }else{
+      // api call
+      const noteDetails = {title,discription}
+      const res = await fetch(`/api/notes`,{
+        method:"POST",
+        body:JSON.stringify(noteDetails)
+      })
+      if(res.status==201){
+        alert("Notes added successfully")
+        setTitle("")
+        setDiscription("")
+        fetchNotes()
+      }
+    }
+  }
+
+    const viewNote = async (id:string)=>{
+    const result = await fetch(`api/notes/${id}`)
+    const noteDetails= await result.json()
+    setTitle(noteDetails.title)
+    setDiscription(noteDetails.discription)
+    setUpdateClickStatus(true)
+    setUpdateNoteId(id)
+  }
+
+  const UpdateNote = async ()=>{
+    if(!title || !discription){
+      alert("Fill the form Completely")
+    }else{
+      // api call
+      const noteDetails = {title,discription}
+      const res = await fetch(`/api/notes/${updateNoteId}`,{
+        method:"PUT",
+        body:JSON.stringify(noteDetails)
+      })
+      alert("Note Updated successfully")
+        setTitle("")
+        setDiscription("")
+        setUpdateClickStatus(false)
+        fetchNotes()
+    }
+  }
+
+  const removeNote = async (id:string)=>{
+    const res = await fetch(`api/notes/${id}`,{
+      method:"DELETE"
+    })
+    const noteDetails= await res.json()
+    alert("Note Removed!!!")
+    fetchNotes()
+  }
+
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+     <main className="min-h-screen bg-gray-100 p-10">
+      <div className="border-4 rounded-2xl max-w-xl mx-auto border-gray-500 p-6 shadow-gray-500 shadow-2xl text-gray-400">
+        <h1 className="text-3xl font-bold text-blue-600 text-center mb-5">Note Manager</h1>
+        <input value={title} onChange={e=>setTitle(e.target.value)} className="border w-full rounded-2xl m-2 p-2" type="text" placeholder="Title" />
+        <textarea value={discription} onChange={e=>setDiscription(e.target.value)} className="border w-full rounded-2xl m-2 p-2" placeholder="Note"></textarea>
+        <div>
+          {
+            updateClickStatus ?
+            <button onClick={UpdateNote} className="bg-red-500 p-3 rounded-xl m-2 font-bold text-black">UPDATE NOTE</button>
+            :
+            <button onClick={addNote} className="bg-green-500 p-3 rounded-xl m-2 font-bold text-black">ADD NOTE</button>
+          }
+          
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="mt-6 space-y-6">
+          {/* notes to be duplicated */}
+          {
+            allNotes?.length>0 ?
+             allNotes?.map((note:Note)=>(
+              <div key={note?._id} className="border border-gray-300 p-2 m-2 rounded-xl flex flex-col text-black">
+                <h4 className="text-lg font-bold">{note?.title}</h4>
+                <p>{note?.discription}</p>
+                <div className="flex justify-start">
+                  <button onClick={()=>viewNote(note._id)} className="rounded-xl mt-1 text-green-500 font-bold">Update</button>
+                  <button onClick={()=>removeNote(note._id)} className="rounded-xl mt-1 ms-3  text-red-500 font-bold">Delete</button>
+                </div>
+               </div>
+             ))
+             :
+             <p className="text-black font-bold text-center">Nothing to Display....</p>
+          }
         </div>
-      </main>
-    </div>
+      </div>
+     </main>
+    </>
   );
 }
